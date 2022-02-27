@@ -1,0 +1,54 @@
+[
+  {
+    "id": 2,
+    "name": "MARKETNET Server",
+    "project_path": "C:\\Users\\Itzan\\Desktop\\go\\marketnet",
+    "deploy": true,
+    "channel_id": "Channels-2",
+    "project_id": "Projects-2",
+    "space_id": "Spaces-1",
+    "step_name": "Deploy a Package from Octopus",
+    "action_name": "Deploy a Package from Octopus",
+    "single_selected_package_name": "",
+    "environment_id": "Environments-41",
+    "git_repos": [
+      "origin",
+      "tfs",
+      "github"
+    ],
+    "prepare_deploy_steps": [
+      "powershell \"Get-ChildItem . | where {{ $_.Name -notin @(\\\".git\\\", \\\"certificates\\\", \\\".gitignore\\\", \\\"config.json\\\", \\\"customer_names.txt\\\", \\\"main.exe\\\")}} | Compress-Archive -DestinationPath main.{0}.zip -Update\""
+    ],
+    "package_file_name": "main.{0}.zip",
+    "clean_up_steps": [
+      "del main.{0}.zip"
+    ]
+  },
+  {
+    "id": 1,
+    "name": "MARKETNET Web",
+    "project_path": "C:\\Users\\Itzan\\Desktop\\nodejs\\marketnet",
+    "deploy": false,
+    "channel_id": "Channels-21",
+    "project_id": "Projects-21",
+    "space_id": "Spaces-1",
+    "step_name": "Deploy the Web",
+    "action_name": "Deploy the Web",
+    "single_selected_package_name": "Deploy a Package from Octopus",
+    "environment_id": "Environments-41",
+    "git_repos": [
+      "origin",
+      "tfs",
+      "github"
+    ],
+    "prepare_deploy_steps": [
+      "npm run-script build",
+      "powershell Compress-Archive ./build/ web.{0}.zip"
+    ],
+    "package_file_name": "web.{0}.zip",
+    "clean_up_steps": [
+      "del web.{0}.zip",
+      "del /s /q .\\build\\*"
+    ]
+  }
+]
