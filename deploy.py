@@ -122,9 +122,6 @@ class DeployablePojects:
         zip_file_name = self.package_file_name.format(next_version)
         zip_file = zipfile.ZipFile(zip_file_name, 'w', zipfile.ZIP_DEFLATED)
         zip_path = path.join(self.project_path, self.zip.zip_what)
-        print(self.project_path)
-        print(self.zip.zip_what)
-        print(zip_path)
         for root, dirs, files in os.walk(zip_path):
             dirs[:] = [d for d in dirs if d not in self.zip.exclude]
             for file in files:
