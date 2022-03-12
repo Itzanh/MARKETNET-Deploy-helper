@@ -1,5 +1,6 @@
 import json
 import os
+import zipfile
 from os import path
 
 import requests
@@ -34,9 +35,15 @@ class OctopusDeployment:
         self.ProjectId = project_id
 
 
+class ZipInfo:
+    def __init__(self, zip_what, exclude):
+        self.zip_what = zip_what
+        self.exclude = exclude
+
+
 class DeployablePojects:
     def __init__(self, id, name, project_path, do_deploy, channel_id, project_id, space_id, step_name, action_name,
-                 single_selected_package_name, environment_id, git_repos, prepare_deploy_steps, package_file_name,
+                 single_selected_package_name, environment_id, git_repos, prepare_deploy_steps, zip, package_file_name,
                  clean_up_steps):
         self.id = id
         self.name = name
@@ -54,6 +61,7 @@ class DeployablePojects:
         self.git_repos = git_repos
         # Deploy
         self.prepare_deploy_steps = prepare_deploy_steps
+        self.zip = zip
         self.package_file_name = package_file_name
         # Clean up
         self.clean_up_steps = clean_up_steps
@@ -77,6 +85,8 @@ class DeployablePojects:
             _next_version = next_version
 
         self._build_package(_next_version)
+        if not self._zip(_next_version):
+            return False
         if not self._upload_package(_next_version):
             return False
         create_release_ok, octopus_release_id = self._create_release(next_version)
@@ -104,6 +114,24 @@ class DeployablePojects:
         os.chdir(self.project_path)
         for cmd in self.prepare_deploy_steps:
             os.system(cmd.format(next_version))
+
+    def _zip(self, next_version):
+        if self.zip is None:
+            return
+        print(self.name + ": CREATING ZIP")
+        zip_file_name = self.package_file_name.format(next_version)
+        zip_file = zipfile.ZipFile(zip_file_name, 'w', zipfile.ZIP_DEFLATED)
+        zip_path = path.join(self.project_path, self.zip.zip_what)
+        print(self.project_path)
+        print(self.zip.zip_what)
+        print(zip_path)
+        for root, dirs, files in os.walk(zip_path):
+            dirs[:] = [d for d in dirs if d not in self.zip.exclude]
+            for file in files:
+                if (file not in self.zip.exclude) and (file != zip_file_name):
+                    zip_file.write(path.join(root, file), path.relpath(path.join(root, file), zip_path))
+        zip_file.close()
+        return True
 
     def _upload_package(self, next_version):
         print(self.name + ": UPLOADING PACKAGE")
@@ -157,11 +185,11 @@ class DeployablePojects:
         print(self.name + ": DEPLOYING...")
         deployment = OctopusDeployment(octopus_release_id, self.channel_id, self.environment_id, self.project_id)
         uri = '{0}{1}/deployments'.format(OCTOPUS_URL, self.space_id)
-        # response = requests.post(uri, headers=OCTOPUS_HEADERS, json=deployment)
-        # if response.status_code < 200 or response.status_code > 299:
-        #    print("Octopus returned an error DEPLOYING the release!!! " + str(response.status_code))
-        #    print(response.text)
-        #    return False
+        response = requests.post(uri, headers=OCTOPUS_HEADERS, data=json.dumps(deployment.__dict__))
+        if response.status_code < 200 or response.status_code > 299:
+            print("Octopus returned an error DEPLOYING the release!!! " + str(response.status_code))
+            print(response.text)
+            return False
         return True
 
     def _clean_up(self, next_version):
@@ -184,11 +212,13 @@ def load_projects():
     with open('projects.json') as json_file:
         _projects = json.load(json_file)
     for p in _projects:
+        zip = ZipInfo(p['zip']['zip_what'], p['zip']['exclude'])
+
         projects.append(
             DeployablePojects(p['id'], p['name'], p['project_path'], p['deploy'], p['channel_id'], p['project_id'],
                               p['space_id'], p['step_name'], p['action_name'], p['single_selected_package_name'],
-                              p['environment_id'], p['git_repos'], p['prepare_deploy_steps'], p['package_file_name'],
-                              p['clean_up_steps']))
+                              p['environment_id'], p['git_repos'], p['prepare_deploy_steps'], zip,
+                              p['package_file_name'], p['clean_up_steps']))
     projects.sort(key=lambda project: project.id, reverse=False)
 
 

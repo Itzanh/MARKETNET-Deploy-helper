@@ -16,9 +16,19 @@
       "tfs",
       "github"
     ],
-    "prepare_deploy_steps": [
-      "powershell \"Get-ChildItem . | where {{ $_.Name -notin @(\\\".git\\\", \\\"certificates\\\", \\\".gitignore\\\", \\\"config.json\\\", \\\"customer_names.txt\\\", \\\"main.exe\\\")}} | Compress-Archive -DestinationPath main.{0}.zip -Update\""
-    ],
+    "prepare_deploy_steps": [],
+    "zip": {
+      "zip_what": "",
+      "exclude": [
+        ".git",
+        "certificates",
+        ".gitignore",
+        "config.json",
+        "customer_names.txt",
+        "main.exe",
+        "README.md"
+      ]
+    },
     "package_file_name": "main.{0}.zip",
     "clean_up_steps": [
       "del main.{0}.zip"
@@ -42,9 +52,12 @@
       "github"
     ],
     "prepare_deploy_steps": [
-      "npm run-script build",
-      "powershell Compress-Archive ./build/ web.{0}.zip"
+      "npm run-script build"
     ],
+    "zip": {
+      "zip_what": "build",
+      "exclude": []
+    },
     "package_file_name": "web.{0}.zip",
     "clean_up_steps": [
       "del web.{0}.zip",
